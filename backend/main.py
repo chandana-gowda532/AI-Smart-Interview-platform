@@ -1,10 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
 from pydantic import BaseModel
-
-from database import SessionLocal
-from models import Question, User
 
 app = FastAPI()
 
@@ -17,59 +13,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# -----------------------------
-# USER DATA MODEL
-# -----------------------------
+# USER MODEL
 class UserData(BaseModel):
     name: str
     email: str
     role: str
 
 
-# -----------------------------
-# SAVE USER API
-# -----------------------------
-@app.post("/save-user")
-def save_user(user: UserData):
-
-    db: Session = SessionLocal()
-
-    new_user = User(
-        name=user.name,
-        email=user.email,
-        role=user.role
-    )
-
-    db.add(new_user)
-    db.commit()
-
+# HOME ROUTE
+@app.get("/")
+def home():
     return {
-        "message": "User saved successfully"
+        "message": "AI Smart Interview Backend Running"
     }
 
 
-# -----------------------------
-# GET QUESTIONS BY CATEGORY
-# -----------------------------
-@app.get("/questions/{category}")
-def get_questions(category: str):
+# SAVE USER ROUTE
+@app.post("/save-user")
+def save_user(user: UserData):
 
-    db: Session = SessionLocal()
-
-    questions = db.query(Question).filter(
-        Question.category == category
-    ).all()
-
-    return questions
+    return {
+        "message": "User saved successfully",
+        "user": user
+    }
 
 
-# -----------------------------
-# HOME API
-# -----------------------------
+# QUESTIONS ROUTE
 @app.get("/questions/{category}")
 def get_questions(category: str):
 
     questions_data = {
+
         "python": [
             "What is Python?",
             "Explain OOP concepts",
