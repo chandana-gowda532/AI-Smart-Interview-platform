@@ -1,152 +1,365 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 
 function App() {
-  const [category, setCategory] = useState("");
+
+  // USER DETAILS
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("");
+
+  const [userSaved, setUserSaved] = useState(false);
+
+  // QUESTIONS
   const [questions, setQuestions] = useState([]);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  // ANSWERS
   const [answer, setAnswer] = useState("");
-  const [answers, setAnswers] = useState([]);
-  const [showResult, setShowResult] = useState(false);
 
-  const categories = ["python", "sql", "hr", "powerbi"];
+  // TIMER
+  const [timer, setTimer] = useState(60);
 
-  const startInterview = async (cat) => {
-    setCategory(cat);
+  // SCORE
+  const [score, setScore] = useState(0);
+
+  // RESULT
+  const [interviewFinished, setInterviewFinished] =
+    useState(false);
+
+  // TIMER LOGIC
+  useEffect(() => {
+
+    if (
+      userSaved &&
+      questions.length > 0 &&
+      timer > 0 &&
+      !interviewFinished
+    ) {
+
+      const interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+
+    if (timer === 0) {
+      finishInterview();
+    }
+
+  }, [timer, questions, userSaved, interviewFinished]);
+
+  // SAVE USER
+  const saveUser = async () => {
+
+    await fetch(
+      "http://127.0.0.1:8000/save-user",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+          name,
+          email,
+          role,
+        }),
+      }
+    );
+
+    setUserSaved(true);
+  };
+
+  // FETCH QUESTIONS
+  const fetchQuestions = async (subject) => {
 
     const response = await fetch(
-      `http://127.0.0.1:8000/questions/${cat}`
+      `http://127.0.0.1:8000/questions/${subject}`
     );
 
     const data = await response.json();
+
     setQuestions(data);
+
+    setCurrentIndex(0);
+
+    setTimer(60);
+
+    setInterviewFinished(false);
+
+    setScore(0);
   };
 
+  // NEXT QUESTION
   const nextQuestion = () => {
-    const updatedAnswers = [...answers, answer];
-    setAnswers(updatedAnswers);
+
+    if (answer.length > 10) {
+      setScore(score + 10);
+    }
+
     setAnswer("");
 
-    if (currentQuestion + 1 < questions.length) {
-      setCurrentQuestion(currentQuestion + 1);
+    if (currentIndex < questions.length - 1) {
+
+      setCurrentIndex(currentIndex + 1);
+
     } else {
-      setShowResult(true);
+
+      finishInterview();
     }
   };
 
-  const score = answers.filter((a) => a.length > 5).length;
+  // PREVIOUS QUESTION
+  const previousQuestion = () => {
+
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
+  };
+
+  // FINISH INTERVIEW
+  const finishInterview = () => {
+    setInterviewFinished(true);
+  };
 
   return (
+
     <div
       style={{
-        backgroundColor: "#001a66",
         minHeight: "100vh",
+        backgroundColor: "#071952",
         color: "white",
-        textAlign: "center",
         padding: "40px",
+        textAlign: "center",
       }}
     >
+
       <h1>AI Smart Interview Platform</h1>
 
-      {!category && (
-        <div>
-          <h2>Select Interview Category</h2>
+      {/* USER FORM */}
 
-          {categories.map((cat, index) => (
-            <button
-              key={index}
-              onClick={() => startInterview(cat)}
-              style={{
-                margin: "10px",
-                padding: "15px 25px",
-                border: "none",
-                borderRadius: "10px",
-                cursor: "pointer",
-                fontSize: "18px",
-              }}
-            >
-              {cat.toUpperCase()}
-            </button>
-          ))}
+      {!userSaved && (
+
+        <div
+          style={{
+            background: "white",
+            color: "black",
+            width: "50%",
+            margin: "50px auto",
+            padding: "30px",
+            borderRadius: "15px",
+          }}
+        >
+
+          <h2>User Details</h2>
+
+          <input
+            type="text"
+            placeholder="Enter Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            style={inputStyle}
+          />
+
+          <input
+            type="email"
+            placeholder="Enter Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={inputStyle}
+          />
+
+          <input
+            type="text"
+            placeholder="Enter Role"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            style={inputStyle}
+          />
+
+          <button
+            onClick={saveUser}
+            style={buttonStyle}
+          >
+            Continue
+          </button>
+
         </div>
       )}
 
-      {questions.length > 0 && !showResult && (
+      {/* TOPIC SELECTION */}
+
+      {userSaved && questions.length === 0 && (
+
+        <div>
+
+          <h2>Select Interview Topic</h2>
+
+          <button
+            onClick={() => fetchQuestions("python")}
+            style={buttonStyle}
+          >
+            Python
+          </button>
+
+          <button
+            onClick={() => fetchQuestions("sql")}
+            style={buttonStyle}
+          >
+            SQL
+          </button>
+
+          <button
+            onClick={() => fetchQuestions("hr")}
+            style={buttonStyle}
+          >
+            HR
+          </button>
+
+        </div>
+      )}
+
+      {/* QUESTIONS */}
+
+      {questions.length > 0 && !interviewFinished && (
+
         <div
           style={{
             background: "white",
             color: "black",
             width: "70%",
-            margin: "30px auto",
+            margin: "50px auto",
             padding: "30px",
-            borderRadius: "10px",
+            borderRadius: "15px",
           }}
         >
+
           <h2>
-            Question {currentQuestion + 1} of {questions.length}
+            Time Remaining: {timer} seconds
           </h2>
 
-          <h3>{questions[currentQuestion]}</h3>
+          <h2>
+            Question {currentIndex + 1}
+            {" "}of{" "}
+            {questions.length}
+          </h2>
+
+          <h3 style={{ marginTop: "30px" }}>
+            {questions[currentIndex].question}
+          </h3>
 
           <textarea
-            rows="5"
-            cols="50"
-            placeholder="Type your answer..."
+            placeholder="Type your answer here..."
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
             style={{
               width: "90%",
-              padding: "10px",
-              marginTop: "20px",
+              height: "120px",
+              marginTop: "30px",
+              padding: "15px",
+              fontSize: "16px",
+              borderRadius: "10px",
             }}
           />
 
-          <br />
+          <div style={{ marginTop: "30px" }}>
 
-          <button
-            onClick={nextQuestion}
-            style={{
-              marginTop: "20px",
-              padding: "10px 20px",
-              border: "none",
-              borderRadius: "8px",
-              backgroundColor: "#001a66",
-              color: "white",
-              cursor: "pointer",
-            }}
-          >
-            Next Question
-          </button>
+            <button
+              onClick={previousQuestion}
+              style={navButton}
+            >
+              Previous
+            </button>
+
+            <button
+              onClick={nextQuestion}
+              style={navButton}
+            >
+              Next
+            </button>
+
+          </div>
+
         </div>
       )}
 
-      {showResult && (
+      {/* RESULT */}
+
+      {interviewFinished && (
+
         <div
           style={{
             background: "white",
             color: "black",
             width: "60%",
-            margin: "40px auto",
-            padding: "30px",
-            borderRadius: "10px",
+            margin: "50px auto",
+            padding: "40px",
+            borderRadius: "15px",
           }}
         >
-          <h2>Interview Completed</h2>
+
+          <h1>
+            Interview Completed
+          </h1>
+
+          <h2>
+            Your Score: {score}
+          </h2>
 
           <h3>
-            Your Score: {score} / {questions.length}
+            Performance Analysis
           </h3>
 
-          {score === questions.length ? (
-            <h2>Excellent Performance</h2>
-          ) : score >= 2 ? (
-            <h2>Good Performance</h2>
-          ) : (
-            <h2>Needs Improvement</h2>
+          {score >= 30 && (
+            <p>Excellent Performance</p>
           )}
+
+          {score >= 10 && score < 30 && (
+            <p>Good Performance</p>
+          )}
+
+          {score < 10 && (
+            <p>Need More Practice</p>
+          )}
+
         </div>
       )}
+
     </div>
   );
 }
+
+const inputStyle = {
+  width: "80%",
+  padding: "15px",
+  margin: "15px",
+  borderRadius: "10px",
+  border: "1px solid gray",
+  fontSize: "16px",
+};
+
+const buttonStyle = {
+  padding: "15px 30px",
+  margin: "15px",
+  border: "none",
+  borderRadius: "10px",
+  backgroundColor: "#071952",
+  color: "white",
+  fontSize: "18px",
+  cursor: "pointer",
+};
+
+const navButton = {
+  padding: "12px 25px",
+  margin: "10px",
+  border: "none",
+  borderRadius: "10px",
+  backgroundColor: "#071952",
+  color: "white",
+  fontSize: "16px",
+  cursor: "pointer",
+};
 
 export default App;

@@ -1,8 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+from pydantic import BaseModel
+
+from database import SessionLocal
+from models import Question, User
 
 app = FastAPI()
 
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -11,36 +17,57 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-questions_data = {
-    "python": [
-        "What is Python?",
-        "Difference between list and tuple?",
-        "What is OOPs?"
-    ],
+# -----------------------------
+# USER DATA MODEL
+# -----------------------------
+class UserData(BaseModel):
+    name: str
+    email: str
+    role: str
 
-    "sql": [
-        "What is SQL?",
-        "Explain joins",
-        "What is primary key?"
-    ],
 
-    "hr": [
-        "Tell me about yourself",
-        "Why should we hire you?",
-        "What are your strengths?"
-    ],
+# -----------------------------
+# SAVE USER API
+# -----------------------------
+@app.post("/save-user")
+def save_user(user: UserData):
 
-    "powerbi": [
-        "What is Power BI?",
-        "What is dashboard?",
-        "What is DAX?"
-    ]
-}
+    db: Session = SessionLocal()
 
-@app.get("/")
-def home():
-    return {"message": "Backend Running"}
+    new_user = User(
+        name=user.name,
+        email=user.email,
+        role=user.role
+    )
 
+    db.add(new_user)
+    db.commit()
+
+    return {
+        "message": "User saved successfully"
+    }
+
+
+# -----------------------------
+# GET QUESTIONS BY CATEGORY
+# -----------------------------
 @app.get("/questions/{category}")
 def get_questions(category: str):
-    return questions_data.get(category.lower(), [])
+
+    db: Session = SessionLocal()
+
+    questions = db.query(Question).filter(
+        Question.category == category
+    ).all()
+
+    return questions
+
+
+# -----------------------------
+# HOME API
+# -----------------------------
+@app.get("/")
+def home():
+    return {
+        "message": "AI Smart Interview Backend Running"
+    }
