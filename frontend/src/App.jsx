@@ -53,7 +53,7 @@ function App() {
   const saveUser = async () => {
 
     await fetch(
-      "http://127.0.0.1:8000/save-user",
+      "https://ai-smart-interview-platform-k601.onrender.com",
       {
         method: "POST",
 
