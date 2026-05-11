@@ -76,7 +76,7 @@ function App() {
   const fetchQuestions = async (subject) => {
 
     const response = await fetch(
-      `http://127.0.0.1:8000/questions/${subject}`
+      'https://ai-smart-interview-platform-k601.onrender.com'
     );
 
     const data = await response.json();
